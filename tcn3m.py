@@ -13,21 +13,22 @@ np.random.seed(42)
 torch.manual_seed(42)
 
 # Hiperparâmetros do modelo
-
 #tamanho do kernel
 kernel_size = 2
 #Taxa de dropout para regularizar o modelo.
+#Eu auterei o dropout, mas como o autor mencionou 
+#"prejudica o desempenho do modelo na validação a definir"
 dropout_rate = 0
 #Número de camadas convolucionais no modelo TCN.
 num_layers = 5
 #Fator de dilatação das convoluções.
 dilation = 1
 #Número de amostras para o gráfico
-num_samples = 100
+num_samples = 100 #numero de amostras (N)
 train_batches = 20
 val_batches = 2
-seq_length = 100
-#v e w ruído gaussiano branco
+seq_length = 100 #comprimento de cada sequência de entrada e saída usada no modelo
+#v e w são ruídos gaussiano branco
 #ambos com desvios padrão 0,3
 sigma_v = 0.3
 sigma_w = 0.3
@@ -84,6 +85,7 @@ def generate_data(batches, seq_length):
 
     return u, y
 '''
+'''
 def generate_data(batches, seq_length):
     u = np.random.normal(0, 1, size=(batches, seq_length // 5))
     u = np.repeat(u, 5, axis=1)  # Cada valor mantido por 5 amostras
@@ -117,7 +119,41 @@ def generate_data(batches, seq_length):
         y[:, i] = y_star[:, i] + w[:, i]
 
     return u, y
+'''
+#ajuste i
+def generate_data(batches, seq_length):
+    u = np.random.normal(0, 1, size=(batches, seq_length // 5))
+    u = np.repeat(u, 5, axis=1)  # Cada valor mantido por 5 amostras
 
+    v = np.random.normal(0, sigma_v, size=(batches, seq_length))
+    w = np.random.normal(0, sigma_w, size=(batches, seq_length))
+
+    y_star = np.zeros((batches, seq_length))
+    y = np.zeros((batches, seq_length))
+
+    for i in range(2, seq_length):
+        # Calcular o termo exponencial com clipping adequado
+        exp_clip = np.clip(y[:, i - 1], -10, 10)  # Intervalo ajustado para maior realismo
+        exp_term1 = 0.8 - 0.5 * np.exp(-exp_clip**2) #ajuste da funcao 
+        exp_term2 = 0.3 + 0.9 * np.exp(-exp_clip**2) #ajuste da funcao 
+
+        # Atualizar y_star com termos ajustados
+        y_star[:, i] = (
+            exp_term1 * y_star[:, i - 1]
+            - exp_term2 * y_star[:, i - 2]
+            + u[:, i - 1]
+            + 0.2 * u[:, i - 2]
+            + 0.1 * u[:, i - 1] * u[:, i - 2]
+            + v[:, i]
+        )
+
+        # Evitar explosão numérica no resultado de y_star
+        y_star[:, i] = np.clip(y_star[:, i], -10, 10)
+
+        # Adicionar o ruído de medição
+        y[:, i] = y_star[:, i] + w[:, i]
+
+    return u, y
 
 # Gerar dados de treinamento e validação
 u_train, y_train = generate_data(train_batches, seq_length)
@@ -161,7 +197,7 @@ loss_fn = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 # Treinamento
-#Almentei o valor de epochs.
+#Aumentei o valor de epochs.
 epochs = 100
 for epoch in range(epochs):
     model.train()
