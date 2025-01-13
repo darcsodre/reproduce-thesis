@@ -3,6 +3,7 @@
 # valida o desempenho e compara a simulação do modelo TCN com o sistema real, 
 # exibindo um gráfico com 100 amostras. 
 
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import numpy as np
 import torch
 import torch.nn as nn
@@ -181,7 +182,7 @@ class TCN(nn.Module):
                     dilation=dilation,
                 )
             )
-            layers.append(nn.ReLU())
+            layers.append(nn.ReLU())       
             layers.append(nn.Dropout(dropout))
         self.network = nn.Sequential(*layers)
         self.output_layer = nn.Conv1d(num_channels, output_size, 1)
@@ -198,7 +199,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 # Treinamento
 #Aumentei o valor de epochs.
-epochs = 100
+epochs = 300
 for epoch in range(epochs):
     model.train()
     optimizer.zero_grad()
@@ -226,6 +227,18 @@ sim_outputs = sim_outputs[-num_samples:]
 y_sim = y_sim.squeeze()[-num_samples:]
 
 print(y_sim)
+
+# Gerar as previsões e os valores reais
+y_real = y_sim  # Valores reais gerados pelo sistema
+y_pred = sim_outputs  # Valores previstos pelo modelo
+
+# Calcular MSE
+mse = mean_squared_error(y_real, y_pred)
+
+# Calcular RMSE
+rmse = np.sqrt(mse)
+
+print(f"RMSE: {rmse:.4f}")
 
 # Plotar os resultados
 plt.figure(figsize=(12, 6))
