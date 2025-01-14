@@ -18,17 +18,17 @@ torch.manual_seed(42)
 kernel_size = 2
 #Taxa de dropout para regularizar o modelo.
 #Eu auterei o dropout, mas como o autor mencionou 
-#"prejudica o desempenho do modelo na validação a definir"
+#"prejudica o desempenho do modelo na validação"
 dropout_rate = 0
 #Número de camadas convolucionais no modelo TCN.
 num_layers = 5
 #Fator de dilatação das convoluções.
 dilation = 1
 #Número de amostras para o gráfico
-num_samples = 100 #numero de amostras (N)
-train_batches = 20
-val_batches = 2
-seq_length = 100 #comprimento de cada sequência de entrada e saída usada no modelo
+num_samples = 2000 #numero de amostras (N)
+train_batches = 20 #treina o batches
+val_batches = 2 #valida o batches
+seq_length = 2000 #comprimento de cada sequência de entrada e saída usada no modelo
 #v e w são ruídos gaussiano branco
 #ambos com desvios padrão 0,3
 sigma_v = 0.3
@@ -222,9 +222,13 @@ u_sim, y_sim = generate_data(1, seq_length)
 u_sim_tensor = torch.tensor(u_sim, dtype=torch.float32).unsqueeze(1)
 y_sim_tensor = torch.tensor(y_sim, dtype=torch.float32).unsqueeze(1)
 
+# Selecionar as últimas 100 amostras para plotar
+last_samples = 100
 sim_outputs = model(u_sim_tensor).detach().numpy().squeeze()
-sim_outputs = sim_outputs[-num_samples:]
-y_sim = y_sim.squeeze()[-num_samples:]
+#sim_outputs = sim_outputs[-num_samples:]
+#y_sim = y_sim.squeeze()[-num_samples:]
+sim_outputs = sim_outputs[-last_samples:]  # Pegar as últimas 100 amostras
+y_sim = y_sim.squeeze()[-last_samples:]    # Pegar as últimas 100 amostras
 
 print(y_sim)
 
@@ -242,8 +246,8 @@ print(f"RMSE: {rmse:.4f}")
 
 # Plotar os resultados
 plt.figure(figsize=(12, 6))
-plt.plot(range(num_samples), y_sim, label="Real System", linestyle="--")
-plt.plot(range(num_samples), sim_outputs, label="TCN Model")
+plt.plot(range(last_samples), y_sim, label="Real System", linestyle="--")
+plt.plot(range(last_samples), sim_outputs, label="TCN Model")
 plt.legend()
 plt.title("Comparison of Real System and TCN Model")
 plt.xlabel("Sample")
